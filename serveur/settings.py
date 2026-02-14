@@ -97,18 +97,28 @@ WSGI_APPLICATION = 'serveur.wsgi.application'
 # ← DÉPLACÉ: import en haut pour plus de clarté
 
 # Vérifier si on est sur Railway (présence de DATABASE_URL)
-if os.environ.get('DATABASE_URL'):
-    # Mode production (Railway) - PostgreSQL
+# Vérifier si DATABASE_PUBLIC_URL existe pour accès local à Railway
+if os.environ.get('DATABASE_PUBLIC_URL'):
+    DATABASES = {
+        'default': dj_database_url.parse(
+            os.environ.get('DATABASE_PUBLIC_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True
+        )
+    }
+elif os.environ.get('DATABASE_URL'):
+    # Mode production sur Railway
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=True  # ← AJOUTÉ: important pour Railway
+            ssl_require=True
         )
     }
 else:
-    # Mode développement (local) - SQLite
+    # Mode développement local - SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
