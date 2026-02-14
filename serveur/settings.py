@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-
+import dj_database_url  
 # Charger les variables d'environnement depuis .env
 load_dotenv()
 
@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',  # ← AJOUTÉ: important pour les requêtes cross-origin
     # Notre application API
-    'api',
+    'api.apps.ApiConfig',
+    
 ]
 
 MIDDLEWARE = [
@@ -93,7 +94,7 @@ WSGI_APPLICATION = 'serveur.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 # SQLite en local, PostgreSQL sur Railway (via DATABASE_URL)
 
-import dj_database_url  # ← DÉPLACÉ: import en haut pour plus de clarté
+# ← DÉPLACÉ: import en haut pour plus de clarté
 
 # Vérifier si on est sur Railway (présence de DATABASE_URL)
 if os.environ.get('DATABASE_URL'):
