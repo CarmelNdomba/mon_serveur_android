@@ -30,7 +30,14 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-il#ag17@5#8a_0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'  # ← CHANGÉ: False par défaut en prod
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')  # ← CHANGÉ: plus flexible
+
+
+# Configuration plus robuste pour ALLOWED_HOSTS
+ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.railway.app']
+
+# Alternative si tu veux garder la flexibilité des variables d'env :
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+
 
 
 # Application definition
