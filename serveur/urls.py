@@ -1,19 +1,3 @@
-"""
-URL configuration for serveur project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 # serveur/urls.py
 from django.contrib import admin
 from django.urls import path, include
@@ -32,33 +16,33 @@ urlpatterns = [
     # Admin Django
     path('admin/', admin.site.urls),
     
-    # API principale (tous les endpoints)
+    # API principale (tous les endpoints) - inclut déjà api-auth
     path('api/', include('api.urls')),
     
-    # URLs personnalisées pour l'admin (boutons d'action)
-   # path('admin-custom/', include('api.admin_urls')),
+    # URLs personnalisées pour l'admin (boutons d'action) - commenté
+    # path('admin-custom/', include('api.admin_urls')),
     
-    # Redirection de la racine vers l'API (optionnel)
+    # Redirection de la racine vers l'API
     path('', RedirectView.as_view(url='/api/', permanent=False)),
 ]
 
-# Documentation automatique de l'API (si django-rest-framework est installé)
+# Documentation automatique de l'API
 if DRF_AVAILABLE:
     urlpatterns += [
         path('api/docs/', include_docs_urls(title='Android Device Management API')),
     ]
 
-# URLs pour l'authentification DRF (interface de login/logout)
-urlpatterns += [
-    path('api-auth/', include('rest_framework.urls')),
-]
+# ⚠️ SUPPRIMEZ OU COMMENTEZ CES LIGNES (déjà dans api/urls.py)
+# urlpatterns += [
+#     path('api-auth/', include('rest_framework.urls')),
+# ]
 
 # Ajout des URLs pour les fichiers médias en développement
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
-    # En développement, ajouter les outils de debug (optionnel)
+    # En développement, ajouter les outils de debug
     try:
         import debug_toolbar
         urlpatterns += [
@@ -67,12 +51,11 @@ if settings.DEBUG:
     except ImportError:
         pass
     
-    # Afficher les URLs disponibles en console (pour debug)
+    # Afficher les URLs disponibles en console
     print("\n" + "="*50)
     print("URLS DISPONIBLES EN MODE DEBUG")
     print("="*50)
     print("Admin: http://localhost:8000/admin/")
     print("API Root: http://localhost:8000/api/")
     print("API Docs: http://localhost:8000/api/docs/")
-    print("Admin Custom: http://localhost:8000/admin-custom/")
     print("="*50 + "\n")
