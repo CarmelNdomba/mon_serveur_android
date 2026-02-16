@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count, Sum
 from .models import Device, FileList, FileItem, FileScanStats
-
+from django.db import models  # 👈 AJOUTE CETTE LIGNE
 
 class FileItemInline(admin.TabularInline):
     """
