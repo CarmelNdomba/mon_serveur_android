@@ -36,7 +36,7 @@ urlpatterns = [
     path('api/', include('api.urls')),
     
     # URLs personnalisées pour l'admin (boutons d'action)
-    path('admin-custom/', include('api.admin_urls')),
+   # path('admin-custom/', include('api.admin_urls')),
     
     # Redirection de la racine vers l'API (optionnel)
     path('', RedirectView.as_view(url='/api/', permanent=False)),
