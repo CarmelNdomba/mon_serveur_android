@@ -3,8 +3,9 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count, Sum
+from django.db import models
 from .models import Device, FileList, FileItem, FileScanStats
-from django.db import models  # 👈 AJOUTE CETTE LIGNE
+
 
 class FileItemInline(admin.TabularInline):
     """
@@ -157,7 +158,7 @@ class DeviceAdmin(admin.ModelAdmin):
         'files_stats'
     ]
     
-    # Actions personnalisées
+    # Actions personnalisées - sous forme de strings
     actions = [
         'activate_devices', 
         'deactivate_devices', 
@@ -337,31 +338,39 @@ class DeviceAdmin(admin.ModelAdmin):
     files_count.admin_order_field = 'file_lists_count'
     
     def files_stats(self, obj):
-        """Statistiques des fichiers pour cet appareil"""
+        """Statistiques des fichiers pour cet appareil - VERSION CORRIGÉE"""
         last_scan = obj.file_lists.filter(status='completed').first()
         if not last_scan:
             return "Aucun scan disponible"
         
-        stats = last_scan.files.aggregate(
-            total=Count('id'),
-            images=Count('id', filter=models.Q(file_type='image')),
-            videos=Count('id', filter=models.Q(file_type='video')),
-            total_size=Sum('size_bytes')
-        )
+        # Compter les fichiers par type - méthode corrigée sans filter dans Count
+        total = last_scan.files.count()
+        images = last_scan.files.filter(file_type='image').count()
+        videos = last_scan.files.filter(file_type='video').count()
+        audio = last_scan.files.filter(file_type='audio').count()
+        documents = last_scan.files.filter(file_type='document').count()
+        apks = last_scan.files.filter(file_type='apk').count()
         
-        total_size_gb = stats['total_size'] / (1024**3) if stats['total_size'] else 0
+        # Calculer la taille totale
+        total_size = last_scan.files.aggregate(total=Sum('size_bytes'))['total'] or 0
+        total_size_gb = total_size / (1024**3) if total_size else 0
         
         return format_html(
             '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">'
             '<strong>Dernier scan:</strong> {}<br>'
             '📁 Total: {} fichiers<br>'
             '🖼️ Images: {} | 🎬 Vidéos: {}<br>'
+            '🎵 Audio: {} | 📄 Documents: {}<br>'
+            '📱 APK: {}<br>'
             '💾 Taille totale: {:.2f} Go'
             '</div>',
-            last_scan.scan_completed_at.strftime('%d/%m/%Y %H:%M'),
-            stats['total'],
-            stats['images'],
-            stats['videos'],
+            last_scan.scan_completed_at.strftime('%d/%m/%Y %H:%M') if last_scan.scan_completed_at else "N/A",
+            total,
+            images,
+            videos,
+            audio,
+            documents,
+            apks,
             total_size_gb
         )
     files_stats.short_description = "Statistiques fichiers"
@@ -370,9 +379,9 @@ class DeviceAdmin(admin.ModelAdmin):
         """Boutons d'action dans la liste"""
         return format_html(
             '<div style="display: flex; gap: 5px;">'
-            '<a class="button" href="{}" style="background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px;">📁 Scans</a>'
-            '<a class="button" href="{}" style="background: #28a745; color: white; padding: 3px 8px; border-radius: 3px;">📱 Demander</a>'
-            '<a class="button" href="{}" style="background: #ffc107; color: black; padding: 3px 8px; border-radius: 3px;">📊 Stats</a>'
+            '<a class="button" href="{}" style="background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none;">📁 Scans</a>'
+            '<a class="button" href="{}" style="background: #28a745; color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none;">📱 Demander</a>'
+            '<a class="button" href="{}" style="background: #ffc107; color: black; padding: 3px 8px; border-radius: 3px; text-decoration: none;">📊 Stats</a>'
             '</div>',
             reverse('admin:api_filelist_changelist') + f'?device__id__exact={obj.id}',
             reverse('admin-custom:device-request-files', args=[obj.id]),
@@ -576,8 +585,6 @@ class FileListAdmin(admin.ModelAdmin):
     
     def files_preview(self, obj):
         """Aperçu des types de fichiers"""
-        from django.db.models import Count
-        
         stats = obj.files.values('file_type').annotate(count=Count('id'))
         
         html = '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
@@ -600,9 +607,9 @@ class FileListAdmin(admin.ModelAdmin):
     files_preview.short_description = "Aperçu par type"
     
     def stats_summary(self, obj):
-        """Résumé des statistiques"""
-        if hasattr(obj, 'stats'):
-            stats = obj.stats
+        """Résumé des statistiques - VERSION CORRIGÉE"""
+        try:
+            stats = FileScanStats.objects.get(file_list=obj)
             return format_html(
                 '<div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">'
                 '<strong>Images:</strong> {} ({} Mo)<br>'
@@ -619,15 +626,16 @@ class FileListAdmin(admin.ModelAdmin):
                 stats.apks_count, stats.apks_size / 1024**2,
                 stats.hidden_files_count
             )
-        return "Statistiques non disponibles"
+        except FileScanStats.DoesNotExist:
+            return "Statistiques non disponibles"
     stats_summary.short_description = "Résumé détaillé"
     
     def actions_buttons(self, obj):
         """Boutons d'action"""
         return format_html(
             '<div style="display: flex; gap: 5px;">'
-            '<a class="button" href="{}" target="_blank" style="background: #28a745; color: white;">⬇️ JSON</a>'
-            '<a class="button" href="{}" style="background: #17a2b8; color: white;">🔍 Fichiers</a>'
+            '<a class="button" href="{}" target="_blank" style="background: #28a745; color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none;">⬇️ JSON</a>'
+            '<a class="button" href="{}" style="background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none;">🔍 Fichiers</a>'
             '</div>',
             reverse('admin-custom:scan-download', args=[obj.id]),
             reverse('admin:api_fileitem_changelist') + f'?file_list__id__exact={obj.id}'
